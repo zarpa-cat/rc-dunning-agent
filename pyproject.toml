@@ -9,6 +9,8 @@ dependencies = [
     "typer",
     "rich",
     "click",
+    "fastapi",
+    "uvicorn[standard]",
 ]
 
 [dependency-groups]
@@ -16,6 +18,7 @@ dev = [
     "pytest",
     "pytest-asyncio",
     "ruff",
+    "pytest-httpx",
 ]
 
 [project.scripts]

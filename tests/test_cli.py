@@ -138,3 +138,29 @@ def test_add(tmp_path):
     record = store.get("sub_new")
     assert record is not None
     assert record.status == DunningStatus.BILLING_ISSUE
+
+
+def test_analytics_empty(tmp_path):
+    result = runner.invoke(app, ["analytics", "--db-path", _db(tmp_path)])
+    assert result.exit_code == 0
+    assert "Recovery rate: 0.0%" in result.output
+    assert "Avg days to recovery: 0.0" in result.output
+    assert "No data yet" in result.output
+
+
+def test_analytics_with_data(tmp_path):
+    db_path = _db(tmp_path)
+    store = DunningStore(db_path)
+    now = datetime.now(timezone.utc)
+    store.upsert(DunningRecord(
+        subscriber_id="r1", status=DunningStatus.RECOVERED,
+        billing_issue_at=now - timedelta(days=2), recovery_at=now, nudge_count=1,
+    ))
+    store.upsert(DunningRecord(
+        subscriber_id="c1", status=DunningStatus.CHURNED,
+        billing_issue_at=now - timedelta(days=10), nudge_count=2,
+    ))
+    result = runner.invoke(app, ["analytics", "--db-path", db_path])
+    assert result.exit_code == 0
+    assert "Recovery rate: 50.0%" in result.output
+    assert "1 nudge(s)" in result.output

@@ -4,6 +4,7 @@ from rich.table import Table
 
 from rc_dunning_agent.store import DunningStore
 from rc_dunning_agent.engine import DunningEngine
+from rc_dunning_agent.analytics import RecoveryAnalytics
 
 app = typer.Typer(name="rda", help="RC Dunning Agent - automated payment recovery manager")
 console = Console()
@@ -104,3 +105,20 @@ def add(
     engine = _get_engine(db_path)
     record = engine.handle_billing_issue(subscriber_id)
     console.print(f"Added billing issue for {subscriber_id} (status: {record.status.value}).")
+
+
+@app.command()
+def analytics(db_path: str = typer.Option(DB_PATH, help="Database path")):
+    """Show recovery analytics (rate, avg days, nudge effectiveness)."""
+    store = DunningStore(db_path)
+    ra = RecoveryAnalytics(store)
+    s = ra.summary()
+    console.print(f"Recovery rate: {s['recovery_rate']:.1%}")
+    console.print(f"Avg days to recovery: {s['avg_days_to_recovery']:.1f}")
+    console.print("Nudge effectiveness:")
+    ne = s["nudge_effectiveness"]
+    if not ne:
+        console.print("  No data yet.")
+    else:
+        for count, rate in ne.items():
+            console.print(f"  {count} nudge(s): {rate:.1%}")
